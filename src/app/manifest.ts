@@ -11,5 +11,10 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#faf7f2",
     theme_color: "#b5532b",
     lang: "ja",
+    // お店のロゴの女の子がレジを打つ絵（2026-11-22）
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
   };
 }

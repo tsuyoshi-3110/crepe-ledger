@@ -72,6 +72,8 @@ function LoginGate() {
   return (
     <main className="grid min-h-dvh place-items-center p-5">
       <form className="cl-card w-full max-w-sm space-y-3" onSubmit={(e) => { e.preventDefault(); void login(); }}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- 小さな絵1枚なので next/image は使わない */}
+        <img src="/logo.png" alt="" width={160} height={160} className="mx-auto" />
         <h1 className="text-center text-xl font-bold">甘味処クレープよって屋<span className="ml-1">帳簿</span></h1>
         {/* type="email" だと、iPhone で前後に空白や全角の混じった文字を貼り付けたときに入らないことがあるので text にして、押したときに整える */}
         <input className="cl-input" type="text" autoComplete="username" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)} />
