@@ -67,7 +67,7 @@ function LoginGate() {
   return (
     <main className="grid min-h-dvh place-items-center p-5">
       <form className="cl-card w-full max-w-sm space-y-3" onSubmit={(e) => { e.preventDefault(); void login(); }}>
-        <h1 className="text-center text-xl font-bold">クレープ帳簿</h1>
+        <h1 className="text-center text-xl font-bold">甘味処クレープよって屋<span className="ml-1">帳簿</span></h1>
         <input className="cl-input" type="email" autoComplete="email" inputMode="email" placeholder="メールアドレス" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className="cl-input" type="password" autoComplete="current-password" placeholder="パスワード" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" className="cl-primary w-full" disabled={busy}>{busy && <Loader2 size={16} className="animate-spin" />}ログイン</button>

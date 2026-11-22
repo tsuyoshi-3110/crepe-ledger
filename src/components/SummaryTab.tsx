@@ -35,7 +35,7 @@ export function SummaryTab({ data }: { data: ShopData }) {
     setExportError("");
     try {
       const name = mode === "week" ? month : String(year);
-      await downloadExcel(buildSheets(data, range.from, range.to, today), `クレープ帳簿_${name}.xlsx`);
+      await downloadExcel(buildSheets(data, range.from, range.to, today), `よって屋帳簿_${name}.xlsx`);
     } catch {
       setExportError("書き出せませんでした。もう一度押してください。");
     } finally {

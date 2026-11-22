@@ -9,7 +9,7 @@ const FORMATS = { yen: "#,##0", rate: "0.0%", number: "#,##0.##" } as const;
 export async function downloadExcel(sheets: Sheet[], fileName: string): Promise<void> {
   const { default: ExcelJS } = await import("exceljs");
   const book = new ExcelJS.Workbook();
-  book.creator = "クレープ帳簿";
+  book.creator = "甘味処クレープよって屋 帳簿";
   for (const sheet of sheets) {
     const ws = book.addWorksheet(sheet.name, { views: [{ state: "frozen", ySplit: 1 }] });
     ws.columns = sheet.columns.map((c) => ({ header: c.header, width: c.width, style: c.format ? { numFmt: FORMATS[c.format] } : {} }));
