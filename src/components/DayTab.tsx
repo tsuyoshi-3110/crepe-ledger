@@ -8,6 +8,7 @@ import type { ShopData } from "@/components/useShopData";
 import { feeFromRate, monthCostRate, summarizeWithMonthRate } from "@/lib/calc";
 import { addDays, dateWithWeekday, shortDate, todayLocal } from "@/lib/dates";
 import { formatYen } from "@/lib/format";
+import { missingDays } from "@/lib/missingDays";
 import { recentPriceChanges } from "@/lib/priceWatch";
 import { putDoc } from "@/lib/store";
 import { CHANNELS, emptyDay, type DayRecord, type LaborEntry } from "@/lib/types";
@@ -21,6 +22,7 @@ export function DayTab({ data, reload, onOpenSettings }: Props) {
   return (
     <div className="space-y-4">
       <PriceAlerts data={data} />
+      <MissingDays data={data} current={date} onPick={setDate} />
       <div className="flex items-center justify-between">
         <button type="button" className="cl-secondary !px-3" aria-label="前の日" onClick={() => setDate(addDays(date, -1))}><ChevronLeft size={20} /></button>
         <label className="relative text-center">
@@ -56,10 +58,11 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
   });
   const [labor, setLabor] = useState<LaborEntry[]>(() => initialLabor(saved, data));
   const [note, setNote] = useState(start.note);
+  const [closed, setClosed] = useState(!!start.closed);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const record: DayRecord = { date, sales, fees, labor: labor.filter((e) => e.hours > 0), note: note.trim() };
+  const record: DayRecord = { date, sales, fees, labor: labor.filter((e) => e.hours > 0), note: note.trim(), closed };
   // Firestore は項目の順を並べ替えて返すので、決まった順に並べ直してから比べる
   const dirty = dayKey(record) !== dayKey(saved ?? emptyDay(date));
   // 1日の原価も、その月の原価率から出した目安（その日に買ったレシートで上下しないように）
@@ -86,6 +89,10 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
 
   return (
     <>
+      <label className="flex items-center justify-end gap-2 text-sm font-semibold text-stone-600">
+        <input type="checkbox" className="size-5 accent-[var(--brand)]" checked={closed} onChange={(e) => setClosed(e.target.checked)} />
+        この日は休み
+      </label>
       <section className="cl-card space-y-3">
         <h2 className="font-bold">売上</h2>
         {CHANNELS.map((channel) => (
@@ -178,7 +185,7 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
 
 function dayKey(d: DayRecord): string {
   return JSON.stringify([
-    d.sales.store, d.sales.uber, d.sales.rocket, d.fees.uber, d.fees.rocket, d.note,
+    d.sales.store, d.sales.uber, d.sales.rocket, d.fees.uber, d.fees.rocket, d.note, !!d.closed,
     d.labor.map((e) => [e.staffId, e.hours, e.hourlyWage]),
   ]);
 }
@@ -232,6 +239,33 @@ function PriceAlerts({ data }: { data: ShopData }) {
           <span className="w-10 text-right text-xs text-stone-500">{shortDate(c.date)}</span>
         </p>
       ))}
+    </section>
+  );
+}
+
+/**
+ * 入れ忘れた日（昨日までの2週間）。売上が空の日があると、月の原価率が高く出るので知らせる。
+ * 日付を押すとその日を開く。休みの日は「この日は休み」にすると消える。
+ */
+function MissingDays({ data, current, onPick }: { data: ShopData; current: string; onPick: (date: string) => void }) {
+  const missing = useMemo(() => missingDays(data.days, todayLocal()), [data.days]);
+  if (missing.length === 0) return null;
+  return (
+    <section className="cl-card space-y-2 border border-amber-200 !bg-amber-50">
+      <h2 className="text-sm font-bold text-amber-900">売上が入っていない日があります</h2>
+      <div className="flex flex-wrap gap-2">
+        {missing.map((date) => (
+          <button
+            key={date}
+            type="button"
+            onClick={() => onPick(date)}
+            className={`rounded-full border px-3 py-1.5 text-sm font-semibold ${date === current ? "border-[var(--brand)] bg-[var(--brand)] text-white" : "border-amber-300 bg-white text-amber-900"}`}
+          >
+            {dateWithWeekday(date)}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs text-stone-500">お店が休みの日は、その日を開いて「この日は休み」にしてください。</p>
     </section>
   );
 }

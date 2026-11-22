@@ -25,6 +25,8 @@ export type DayRecord = {
   fees: { uber: number; rocket: number };
   labor: LaborEntry[];
   note: string;
+  /** 店の休み。入れ忘れの知らせから外す（前からの記録には無いので省略できる） */
+  closed?: boolean;
 };
 
 /** レシートの1行。amount は値引きを引いたあとの額。単価は amount ÷ quantity */

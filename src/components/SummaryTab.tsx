@@ -1,11 +1,13 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, FileSpreadsheet, Loader2 } from "lucide-react";
 import { useState } from "react";
 
 import type { ShopData } from "@/components/useShopData";
 import { summarize, summarizeWithMonthRate, type Summary } from "@/lib/calc";
 import { daysInMonth, monthLabel, monthsOfYear, shiftMonth, todayLocal, weeksOfMonth, type Period } from "@/lib/dates";
+import { downloadExcel } from "@/lib/exportExcel";
+import { buildSheets } from "@/lib/exportSheets";
 import { formatRate, formatYen } from "@/lib/format";
 
 type Mode = "week" | "month";
@@ -24,6 +26,22 @@ export function SummaryTab({ data }: { data: ShopData }) {
   const sum = (from: string, to: string) => summarize(from, to, data.days, data.purchases, data.fixedCosts);
   // 週は材料をまとめて買った週だけ原価が膨らむので、その月の原価率で割り振った目安にする（lib/calc.ts）
   const week = (from: string, to: string) => summarizeWithMonthRate(from, to, today, data.days, data.purchases, data.fixedCosts);
+
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
+  // 週ごとを見ているときはその月、月ごとのときはその年を書き出す
+  async function exportExcel() {
+    setExporting(true);
+    setExportError("");
+    try {
+      const name = mode === "week" ? month : String(year);
+      await downloadExcel(buildSheets(data, range.from, range.to, today), `クレープ帳簿_${name}.xlsx`);
+    } catch {
+      setExportError("書き出せませんでした。もう一度押してください。");
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -45,6 +63,11 @@ export function SummaryTab({ data }: { data: ShopData }) {
         .filter((p) => p.from <= today)
         .reverse()
         .map((p) => <SummaryCard key={p.key} title={p.label} summary={mode === "week" ? week(p.from, p.to) : sum(p.from, p.to)} target={data.settings.targetCostRate} />)}
+      <button type="button" className="cl-secondary w-full" disabled={exporting || range.from > today} onClick={() => void exportExcel()}>
+        {exporting ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
+        {mode === "week" ? monthLabel(month) : `${year}年`}をExcelで書き出す
+      </button>
+      {exportError && <p className="text-center text-sm font-semibold text-red-700">{exportError}</p>}
       <p className="pb-2 text-xs text-stone-500">週の原価は「週の売上 × その月の原価率」で出した目安です。レシートの実際の額は月ごとで見てください。週は月曜から日曜。月をまたぐ週は、どちらの月にも出ます（月の合計には、その月の日だけが入ります）。</p>
     </div>
   );
