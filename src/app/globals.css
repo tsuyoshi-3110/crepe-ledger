@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+:root {
+  --background: #faf7f2;
+  --foreground: #1f1a17;
+  --brand: #b5532b;
+  --brand-dark: #8f3f1f;
+  --muted: #7a6e66;
+  --line: #e7dfd6;
+  --card: #ffffff;
+  --profit: #1d7a4a;
+  --loss: #c0352b;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* スマホで押しやすいように、入力欄とボタンは高さ48px */
+.cl-input {
+  display: block;
+  width: 100%;
+  min-height: 3rem;
+  border: 1px solid #d9cfc4;
+  border-radius: 0.75rem;
+  background: #fff;
+  padding: 0.5rem 0.85rem;
+  font-size: 1rem;
+  font-weight: 600;
+  outline: none;
+}
+.cl-input:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgb(181 83 43 / 0.15);
+}
+.cl-amount {
+  text-align: right;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.cl-primary,
+.cl-secondary {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  padding: 0 1.1rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+.cl-primary {
+  background: var(--brand);
+  color: #fff;
+}
+.cl-primary:active {
+  background: var(--brand-dark);
+}
+.cl-secondary {
+  border: 1px solid #d9cfc4;
+  background: #fff;
+  color: #4a3f38;
+}
+.cl-primary:disabled,
+.cl-secondary:disabled {
+  opacity: 0.5;
+}
+
+.cl-card {
+  border-radius: 1rem;
+  background: var(--card);
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgb(60 40 20 / 0.06);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

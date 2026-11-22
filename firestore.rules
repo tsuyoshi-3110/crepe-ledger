@@ -1,0 +1,13 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 帳簿は shops/{shopId} の下。読み書きできるのは、メールアドレスとパスワードでログインした人。
+    // アカウントは管理者が Firebase の画面で作り、新しい登録は止めてある（自分でアカウントを作れない）。
+    // Google などほかのログインは外したので、パスワードで入った人に限る（ほかの方法を有効に戻しても入れないように）
+    match /shops/{shopId}/{collection}/{docId} {
+      allow read, write: if request.auth != null
+        && request.auth.token.firebase.sign_in_provider == 'password'
+        && collection in ['days', 'purchases', 'materials', 'staff', 'fixedCosts', 'meta'];
+    }
+  }
+}
