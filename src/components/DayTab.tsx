@@ -145,10 +145,10 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
       <section className="cl-card space-y-1.5">
         <h2 className="mb-1 font-bold">この日の利益</h2>
         <Row label="売上" value={summary.sales.total} />
-        <Row label={`原価（手数料を引いた売上 × ${data.settings.targetCostRate}%）`} value={-summary.cost} />
-        <Row label="粗利" value={summary.grossProfit} bold />
-        <Row label="人件費" value={-summary.labor} />
         <Row label="手数料" value={-summary.fees} />
+        <Row label={`原価（手数料を引いた売上 × ${data.settings.targetCostRate}%）`} value={-summary.cost} />
+        <Row label="人件費" value={-summary.labor} />
+        <Row label="粗利" value={summary.grossProfit} bold />
         <Row label="固定費の日割り" value={-summary.fixedCosts} />
         <Row label="営業利益" value={summary.operatingProfit} bold colored />
       </section>

@@ -90,10 +90,10 @@ function SummaryCard({ title, summary: s, target, highlight = false }: { title: 
           <Line label="　店頭" value={formatYen(s.sales.store)} note={formatRate(s.sales.store, s.sales.total)} />
           <Line label="　Uber Eats" value={formatYen(s.sales.uber)} note={formatRate(s.sales.uber, s.sales.total)} />
           <Line label="　ロケットナウ" value={formatYen(s.sales.rocket)} note={formatRate(s.sales.rocket, s.sales.total)} />
-          <Line label={`原価（目標 ${target}%）`} value={formatYen(s.cost)} />
-          <Line label="粗利" value={formatYen(s.grossProfit)} note={`粗利率 ${formatRate(s.grossProfit, s.sales.total)}`} bold />
-          <Line label="人件費" value={formatYen(s.labor)} note={`${formatRate(s.labor, s.sales.total)}・${s.laborHours}時間`} />
           <Line label="手数料" value={formatYen(s.fees)} note={formatRate(s.fees, s.sales.uber + s.sales.rocket)} />
+          <Line label={`原価（目標 ${target}%）`} value={formatYen(s.cost)} />
+          <Line label="人件費" value={formatYen(s.labor)} note={`${formatRate(s.labor, s.sales.total)}・${s.laborHours}時間`} />
+          <Line label="粗利" value={formatYen(s.grossProfit)} note={`粗利率 ${formatRate(s.grossProfit, s.sales.total)}`} bold />
           <Line label="固定費" value={formatYen(s.fixedCosts)} />
           <Line label="営業利益" value={formatYen(s.operatingProfit)} note={`利益率 ${formatRate(s.operatingProfit, s.sales.total)}`} bold />
         </>

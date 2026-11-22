@@ -3,8 +3,8 @@
  *
  *   売上     ＝ 店頭 ＋ Uber ＋ ロケット（手数料を引く前）
  *   原価     ＝（売上 − 手数料）× 目標の原価率（設定）。デリバリーは手数料を引いた額に掛ける
- *   粗利     ＝ 売上 − 原価
- *   販管費   ＝ 人件費（時給×時間）＋ 販売手数料（Uber・ロケット）＋ 固定費の日割り
+ *   粗利     ＝ 売上 − 販売手数料（Uber・ロケット）− 原価 − 人件費（時給×時間。外注なので粗利の前。2026-11-23 ユーザー）
+ *   販管費   ＝ 固定費の日割り
  *   営業利益 ＝ 粗利 − 販管費
  *
  * 【レシートは利益に入れない】（2026-11-22 ユーザー。強く指定）
@@ -96,8 +96,8 @@ export function summarize(
   // デリバリーは手数料を引いた額に率を掛ける（2026-11-23 ユーザー）
   const costBase = sales.total - fees;
   const cost = Math.round((costBase * Math.max(0, targetPercent)) / 100);
-  const grossProfit = sales.total - cost;
-  const sga = labor + fees + fixed;
+  const grossProfit = sales.total - fees - cost - labor;
+  const sga = fixed;
   return {
     sales,
     cost,

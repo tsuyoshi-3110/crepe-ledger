@@ -26,12 +26,12 @@ test("原価は（売上−手数料）×目標の原価率。レシートは別
   assert.equal(s.sales.total, 45000);
   assert.equal(s.cost, 12000);
   assert.equal(s.receiptCost, 10000);
-  assert.equal(s.grossProfit, 33000);
+  assert.equal(s.grossProfit, 45000 - 5000 - 12000 - 8000);
   assert.equal(s.labor, 5500 + 2500);
   assert.equal(s.laborHours, 7.5);
   assert.equal(s.fees, 5000);
   assert.equal(s.receiptOther, 1000);
-  assert.equal(s.operatingProfit, 33000 - (8000 + 5000));
+  assert.equal(s.operatingProfit, 20000);
   assert.equal(s.openDays, 1);
 });
 

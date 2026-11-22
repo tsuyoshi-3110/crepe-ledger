@@ -45,11 +45,11 @@ export function buildSheets(input: ExportInput, from: string, to: string, today:
     { header: "Uber Eats", width: 12, format: "yen" },
     { header: "ロケットナウ", width: 12, format: "yen" },
     { header: "売上", width: 13, format: "yen" },
+    { header: "手数料", width: 12, format: "yen" },
     { header: "原価（手数料を引いた売上×目標の率）", width: 16, format: "yen" },
-    { header: "粗利", width: 13, format: "yen" },
     { header: "人件費", width: 12, format: "yen" },
     { header: "人件費率", width: 8, format: "rate" },
-    { header: "手数料", width: 12, format: "yen" },
+    { header: "粗利", width: 13, format: "yen" },
     { header: "固定費", width: 12, format: "yen" },
     { header: "営業利益", width: 13, format: "yen" },
     { header: "利益率", width: 8, format: "rate" },
@@ -60,8 +60,8 @@ export function buildSheets(input: ExportInput, from: string, to: string, today:
     const s = summarize(f, t, input.days, input.purchases, input.fixedCosts, input.settings.targetCostRate);
     return [
       label, s.openDays, s.sales.store, s.sales.uber, s.sales.rocket, s.sales.total,
-      s.cost, s.grossProfit,
-      s.labor, rate(s.labor, s.sales.total), s.fees, s.fixedCosts,
+      s.fees, s.cost,
+      s.labor, rate(s.labor, s.sales.total), s.grossProfit, s.fixedCosts,
       s.operatingProfit, rate(s.operatingProfit, s.sales.total),
       s.receiptCost, s.receiptOther,
     ];
