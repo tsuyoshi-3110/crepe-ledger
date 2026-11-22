@@ -5,6 +5,8 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "甘味処クレープよって屋 帳簿",
   description: "毎日の売上と仕入れのレシートから、粗利と営業利益を出します。",
+  // LINE などで送ったときの表示。絵は app/opengraph-image.png（本番のアドレスは Vercel が補う）
+  openGraph: { title: "甘味処クレープよって屋 帳簿", siteName: "よって屋帳簿", type: "website", locale: "ja_JP" },
   appleWebApp: { capable: true, title: "よって屋帳簿", statusBarStyle: "default" },
 };
 
