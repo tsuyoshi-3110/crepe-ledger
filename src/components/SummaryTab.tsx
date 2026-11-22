@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, FileSpreadsheet, Loader2 } from "lucide-reac
 import { useState } from "react";
 
 import type { ShopData } from "@/components/useShopData";
-import { summarize, summarizeWithMonthRate, type Summary } from "@/lib/calc";
+import { summarize, type Summary } from "@/lib/calc";
 import { daysInMonth, monthLabel, monthsOfYear, shiftMonth, todayLocal, weeksOfMonth, type Period } from "@/lib/dates";
 import { downloadExcel } from "@/lib/exportExcel";
 import { buildSheets } from "@/lib/exportSheets";
@@ -23,9 +23,8 @@ export function SummaryTab({ data }: { data: ShopData }) {
   const range = mode === "week"
     ? { label: `${monthLabel(month)}の合計`, from: `${month}-01`, to: `${month}-${String(daysInMonth(month)).padStart(2, "0")}` }
     : { label: `${year}年の合計`, from: `${year}-01-01`, to: `${year}-12-31` };
-  const sum = (from: string, to: string) => summarize(from, to, data.days, data.purchases, data.fixedCosts);
-  // 週は材料をまとめて買った週だけ原価が膨らむので、その月の原価率で割り振った目安にする（lib/calc.ts）
-  const week = (from: string, to: string) => summarizeWithMonthRate(from, to, today, data.days, data.purchases, data.fixedCosts);
+  // 原価は売上 × 目標の原価率。レシートは参考として並べる（lib/calc.ts）
+  const sum = (from: string, to: string) => summarize(from, to, data.days, data.purchases, data.fixedCosts, data.settings.targetCostRate);
 
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
@@ -62,21 +61,19 @@ export function SummaryTab({ data }: { data: ShopData }) {
       {periods
         .filter((p) => p.from <= today)
         .reverse()
-        .map((p) => <SummaryCard key={p.key} title={p.label} summary={mode === "week" ? week(p.from, p.to) : sum(p.from, p.to)} target={data.settings.targetCostRate} />)}
+        .map((p) => <SummaryCard key={p.key} title={p.label} summary={sum(p.from, p.to)} target={data.settings.targetCostRate} />)}
       <button type="button" className="cl-secondary w-full" disabled={exporting || range.from > today} onClick={() => void exportExcel()}>
         {exporting ? <Loader2 size={18} className="animate-spin" /> : <FileSpreadsheet size={18} />}
         {mode === "week" ? monthLabel(month) : `${year}年`}をExcelで書き出す
       </button>
       {exportError && <p className="text-center text-sm font-semibold text-red-700">{exportError}</p>}
-      <p className="pb-2 text-xs text-stone-500">週の原価は「週の売上 × その月の原価率」で出した目安です。レシートの実際の額は月ごとで見てください。週は月曜から日曜。月をまたぐ週は、どちらの月にも出ます（月の合計には、その月の日だけが入ります）。</p>
+      <p className="pb-2 text-xs text-stone-500">原価は「売上 × 目標の原価率（設定）」です。レシートは利益に入れていません（レシートのタブで月ごとの合計を見られます）。週は月曜から日曜。月をまたぐ週は、どちらの月にも出ます（月の合計には、その月の日だけが入ります）。</p>
     </div>
   );
 }
 
 function SummaryCard({ title, summary: s, target, highlight = false }: { title: string; summary: Summary; target: number; highlight?: boolean }) {
-  // 目標の原価率を超えたか。売上が無い期間は比べない
-  const overTarget = target > 0 && s.sales.total > 0 && (s.cost / s.sales.total) * 100 > target;
-  const empty = s.sales.total === 0 && s.cost === 0 && s.labor === 0 && s.otherExpenses === 0;
+  const empty = s.sales.total === 0 && s.labor === 0;
   return (
     <section className={`cl-card space-y-1.5 ${highlight ? "border-2 border-orange-200" : ""}`}>
       <div className="flex items-baseline justify-between gap-3">
@@ -93,11 +90,10 @@ function SummaryCard({ title, summary: s, target, highlight = false }: { title: 
           <Line label="　店頭" value={formatYen(s.sales.store)} note={formatRate(s.sales.store, s.sales.total)} />
           <Line label="　Uber Eats" value={formatYen(s.sales.uber)} note={formatRate(s.sales.uber, s.sales.total)} />
           <Line label="　ロケットナウ" value={formatYen(s.sales.rocket)} note={formatRate(s.sales.rocket, s.sales.total)} />
-          <Line label={s.costEstimated ? "原価（目安）" : "原価"} value={formatYen(s.cost)} note={`原価率 ${formatRate(s.cost, s.sales.total)}`} subNote={target > 0 ? `目標 ${target}%` : ""} alert={overTarget} />
+          <Line label={`原価（目標 ${target}%）`} value={formatYen(s.cost)} />
           <Line label="粗利" value={formatYen(s.grossProfit)} note={`粗利率 ${formatRate(s.grossProfit, s.sales.total)}`} bold />
           <Line label="人件費" value={formatYen(s.labor)} note={`${formatRate(s.labor, s.sales.total)}・${s.laborHours}時間`} />
           <Line label="手数料" value={formatYen(s.fees)} note={formatRate(s.fees, s.sales.uber + s.sales.rocket)} />
-          <Line label="その他の経費" value={formatYen(s.otherExpenses)} />
           <Line label="固定費" value={formatYen(s.fixedCosts)} />
           <Line label="営業利益" value={formatYen(s.operatingProfit)} note={`利益率 ${formatRate(s.operatingProfit, s.sales.total)}`} bold />
         </>
@@ -106,14 +102,13 @@ function SummaryCard({ title, summary: s, target, highlight = false }: { title: 
   );
 }
 
-function Line({ label, value, note = "", subNote = "", bold = false, alert = false }: { label: string; value: string; note?: string; subNote?: string; bold?: boolean; alert?: boolean }) {
+function Line({ label, value, note = "", bold = false }: { label: string; value: string; note?: string; bold?: boolean }) {
   return (
     <p className={`grid grid-cols-[1fr_auto_6.5rem] items-baseline gap-2 ${bold ? "border-t border-[var(--line)] pt-1.5 font-bold" : "text-sm text-stone-600"}`}>
       <span className="whitespace-pre">{label}</span>
       <span className="tabular text-right">{value}</span>
-      <span className={`tabular text-right text-xs ${alert ? "font-bold text-[var(--loss)]" : "font-normal text-stone-500"}`}>
+      <span className="tabular text-right text-xs font-normal text-stone-500">
         {note}
-        {subNote && <span className="block font-normal text-stone-400">{subNote}</span>}
       </span>
     </p>
   );

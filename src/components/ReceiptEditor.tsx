@@ -192,7 +192,7 @@ export function ReceiptEditor({ data, editing, file, onClose, onSaved }: Props) 
           <label className="block text-sm font-semibold">
             費目
             <select className="cl-input mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
-              {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}{c === "材料費" || c === "包装資材費" ? "（原価）" : ""}</option>)}
+              {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}{c === "材料費" || c === "包装資材費" ? "（材料・包装）" : ""}</option>)}
             </select>
           </label>
         </section>

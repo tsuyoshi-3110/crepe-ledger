@@ -73,8 +73,8 @@ export function ReceiptTab({ data, reload }: { data: ShopData; reload: () => Pro
         <button type="button" className="cl-secondary !px-3" aria-label="次の月" onClick={() => setMonth(shiftMonth(month, 1))}><ChevronRight size={20} /></button>
       </div>
       <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="cl-card !p-3"><p className="text-xs text-stone-500">原価（材料・包装）</p><p className="tabular text-lg font-bold">{formatYen(costTotal)}</p></div>
-        <div className="cl-card !p-3"><p className="text-xs text-stone-500">その他の経費</p><p className="tabular text-lg font-bold">{formatYen(otherTotal)}</p></div>
+        <div className="cl-card !p-3"><p className="text-xs text-stone-500">材料・包装</p><p className="tabular text-lg font-bold">{formatYen(costTotal)}</p></div>
+        <div className="cl-card !p-3"><p className="text-xs text-stone-500">その他</p><p className="tabular text-lg font-bold">{formatYen(otherTotal)}</p></div>
       </div>
 
       <ul className="cl-card divide-y divide-[var(--line)] !p-0">

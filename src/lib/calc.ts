@@ -2,18 +2,18 @@
  * 利益の計算。
  *
  *   売上     ＝ 店頭 ＋ Uber ＋ ロケット（手数料を引く前）
- *   原価     ＝ レシートの「材料費」「包装資材費」（レシートの日付の日に数える）
+ *   原価     ＝ 売上 × 目標の原価率（設定）
  *   粗利     ＝ 売上 − 原価
- *   販管費   ＝ 人件費（時給×時間）＋ 販売手数料（Uber・ロケット）＋ その他の経費のレシート ＋ 固定費の日割り
+ *   販管費   ＝ 人件費（時給×時間）＋ 販売手数料（Uber・ロケット）＋ 固定費の日割り
  *   営業利益 ＝ 粗利 − 販管費
+ *
+ * 【レシートは利益に入れない】（2026-11-22 ユーザー。強く指定）
+ * 値段は材料費が目標の原価率に収まるように決めているので、原価は売上 × 目標の原価率で出す。
+ * レシートは別に足しておくだけ（receiptCost＝材料・包装、receiptOther＝それ以外）。原価にも販管費にも入れない。
+ * 使い道は、月ごとに足しておくのと、品目の単価の上がり下がりを見る（lib/priceWatch.ts）ことだけ。
  *
  * 固定費（家賃など）は月の額をその月の日数で割り、期間の日数分を入れる。週が月をまたいでも、
  * 日ごとにその日の月で割るので合う。
- *
- * 【週の原価は目安】（2026-11-22 ユーザー指定）
- * 材料はまとめて買うので、レシートの日付で数えると、買った週だけ原価が大きく、次の週は0に近くなる。
- * レシートは月単位で売上から引くと実際に近い。そこで週の原価は「週の売上 × その月の原価率」にする。
- * 月の途中なら、月初からその日までのレシートと売上で率を出す。月をまたぐ週は、日ごとにその日の月の率を使う。
  */
 import { isCostCategory } from "@/lib/categories";
 import { daysInMonth, eachDay } from "@/lib/dates";
@@ -21,19 +21,21 @@ import type { DayRecord, FixedCost, Purchase } from "@/lib/types";
 
 export type Summary = {
   sales: { store: number; uber: number; rocket: number; total: number };
+  /** 原価＝売上 × 目標の原価率 */
   cost: number;
+  /** 材料・包装のレシートの合計（別に足しておくだけ。利益には入れない） */
+  receiptCost: number;
+  /** それ以外のレシートの合計（同じく利益には入れない） */
+  receiptOther: number;
   grossProfit: number;
   labor: number;
   laborHours: number;
   fees: number;
-  otherExpenses: number;
   fixedCosts: number;
   sga: number;
   operatingProfit: number;
   /** 売上を入れた日の数 */
   openDays: number;
-  /** 原価が目安（月の原価率から出した）か。false はレシートを足した実際の額 */
-  costEstimated: boolean;
 };
 
 export function laborCostOf(day: DayRecord): number {
@@ -62,6 +64,7 @@ export function summarize(
   days: DayRecord[],
   purchases: Purchase[],
   fixedCosts: FixedCost[],
+  targetPercent: number,
 ): Summary {
   const inRange = (date: string) => date >= from && date <= to;
   const sales = { store: 0, uber: 0, rocket: 0, total: 0 };
@@ -81,64 +84,30 @@ export function summarize(
   }
   sales.total = sales.store + sales.uber + sales.rocket;
 
-  let cost = 0;
-  let otherExpenses = 0;
+  let receiptCost = 0;
+  let receiptOther = 0;
   for (const purchase of purchases) {
     if (!inRange(purchase.date)) continue;
-    if (isCostCategory(purchase.category)) cost += purchase.total;
-    else otherExpenses += purchase.total;
+    if (isCostCategory(purchase.category)) receiptCost += purchase.total;
+    else receiptOther += purchase.total;
   }
 
   const fixed = Math.round(eachDay(from, to).reduce((sum, date) => sum + fixedCostOfDay(date, fixedCosts), 0));
+  const cost = Math.round((sales.total * Math.max(0, targetPercent)) / 100);
   const grossProfit = sales.total - cost;
-  const sga = labor + fees + otherExpenses + fixed;
+  const sga = labor + fees + fixed;
   return {
     sales,
     cost,
+    receiptCost,
     grossProfit,
     labor,
     laborHours,
     fees,
-    otherExpenses,
+    receiptOther,
     fixedCosts: fixed,
     sga,
     operatingProfit: grossProfit - sga,
     openDays,
-    costEstimated: false,
   };
-}
-
-/** その月の原価率（0〜1）。月初から upTo（月末より前ならその日）までのレシートと売上で出す。売上が無ければ null */
-export function monthCostRate(month: string, upTo: string, days: DayRecord[], purchases: Purchase[]): number | null {
-  const from = `${month}-01`;
-  const monthEnd = `${month}-${String(daysInMonth(month)).padStart(2, "0")}`;
-  const to = upTo < monthEnd ? upTo : monthEnd;
-  if (to < from) return null;
-  const s = summarize(from, to, days, purchases, []);
-  return s.sales.total > 0 ? s.cost / s.sales.total : null;
-}
-
-/** 週・1日の集計。原価だけ「日ごとの売上 × その日の月の原価率」に置き換える（理由はこのファイルの頭） */
-export function summarizeWithMonthRate(
-  from: string,
-  to: string,
-  today: string,
-  days: DayRecord[],
-  purchases: Purchase[],
-  fixedCosts: FixedCost[],
-): Summary {
-  const base = summarize(from, to, days, purchases, fixedCosts);
-  const rates = new Map<string, number | null>();
-  const rateOf = (month: string) => {
-    if (!rates.has(month)) rates.set(month, monthCostRate(month, today, days, purchases));
-    return rates.get(month) ?? 0;
-  };
-  let cost = 0;
-  for (const day of days) {
-    if (day.date < from || day.date > to) continue;
-    cost += salesTotalOf(day) * rateOf(day.date.slice(0, 7));
-  }
-  cost = Math.round(cost);
-  const grossProfit = base.sales.total - cost;
-  return { ...base, cost, grossProfit, operatingProfit: grossProfit - base.sga, costEstimated: true };
 }

@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { AmountInput } from "@/components/AmountInput";
 import type { ShopData } from "@/components/useShopData";
-import { feeFromRate, monthCostRate, summarizeWithMonthRate } from "@/lib/calc";
+import { feeFromRate, summarize } from "@/lib/calc";
 import { addDays, dateWithWeekday, shortDate, todayLocal } from "@/lib/dates";
 import { formatYen } from "@/lib/format";
 import { missingDays } from "@/lib/missingDays";
@@ -65,8 +65,8 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
   const record: DayRecord = { date, sales, fees, labor: labor.filter((e) => e.hours > 0), note: note.trim(), closed };
   // Firestore は項目の順を並べ替えて返すので、決まった順に並べ直してから比べる
   const dirty = dayKey(record) !== dayKey(saved ?? emptyDay(date));
-  // 1日の原価も、その月の原価率から出した目安（その日に買ったレシートで上下しないように）
-  const summary = summarizeWithMonthRate(date, date, todayLocal(), [...data.days.filter((d) => d.date !== date), record], data.purchases, data.fixedCosts);
+  // 原価は売上 × 目標の原価率（レシートからは出さない。lib/calc.ts）
+  const summary = summarize(date, date, [record], data.purchases, data.fixedCosts, data.settings.targetCostRate);
 
   function setChannelSales(channel: "store" | "uber" | "rocket", value: number) {
     setSales((s) => ({ ...s, [channel]: value }));
@@ -158,11 +158,11 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
       <section className="cl-card space-y-1.5">
         <h2 className="mb-1 font-bold">この日の利益</h2>
         <Row label="売上" value={summary.sales.total} />
-        <Row label="原価（今月の原価率から出した目安）" value={-summary.cost} />
+        <Row label={`原価（売上 × 目標 ${data.settings.targetCostRate}%）`} value={-summary.cost} />
         <Row label="粗利" value={summary.grossProfit} bold />
         <Row label="人件費" value={-summary.labor} />
         <Row label="手数料" value={-summary.fees} />
-        <Row label="その他の経費・固定費の日割り" value={-(summary.otherExpenses + summary.fixedCosts)} />
+        <Row label="固定費の日割り" value={-summary.fixedCosts} />
         <Row label="営業利益" value={summary.operatingProfit} bold colored />
       </section>
 
@@ -201,35 +201,16 @@ function Row({ label, value, bold = false, colored = false }: { label: string; v
 }
 
 /**
- * 材料の値段のお知らせ。レシートを保存したときにも出すが、あとで見返せるように今日の画面にも置く。
- *
- * 今月の原価率が目標（設定）を超えたら、いちばん上に出して値段の見直しを考えるきっかけにする（2026-11-22 ユーザー）。
- * 目標の原価率で値段を決めているので、材料が上がったままだと利益が減っていく。そのときは今月の値上がりを並べる。
+ * 材料の値段のお知らせ（2週間）。レシートを保存したときにも出すが、あとで見返せるように今日の画面にも置く。
+ * レシートは利益には入れず、足しておくのと値段の変化を見るためだけに使う（2026-11-22 ユーザー）。
  */
 function PriceAlerts({ data }: { data: ShopData }) {
   const today = todayLocal();
-  const month = today.slice(0, 7);
-  const target = data.settings.targetCostRate;
-  const rate = useMemo(() => monthCostRate(month, today, data.days, data.purchases), [month, today, data.days, data.purchases]);
-  const over = rate !== null && target > 0 && rate * 100 > target;
-  // 超えたときは今月はじめから、ふだんは2週間の変化
-  const since = over ? `${month}-01` : addDays(today, -14);
-  const changes = useMemo(() => {
-    const list = recentPriceChanges(data.purchases, data.materials, since < addDays(today, -14) ? since : addDays(today, -14));
-    return over ? list.filter((c) => c.diff > 0).sort((a, b) => b.percent - a.percent) : list;
-  }, [data.purchases, data.materials, since, today, over]);
-  if (!over && changes.length === 0) return null;
+  const changes = useMemo(() => recentPriceChanges(data.purchases, data.materials, addDays(today, -14)), [data.purchases, data.materials, today]);
+  if (changes.length === 0) return null;
   return (
-    <section className={`cl-card space-y-2 border ${over ? "border-red-200 !bg-red-50" : "border-orange-200 !bg-orange-50"}`}>
-      {over ? (
-        <>
-          <h2 className="font-bold text-[var(--loss)]">今月の原価率 {(rate * 100).toFixed(1)}%（目標 {target}%）</h2>
-          <p className="text-sm text-stone-700">目標を超えています。値上がりした材料を見て、商品の値段の見直しを考えてください。</p>
-          {changes.length > 0 && <h3 className="pt-1 text-xs font-bold text-stone-500">今月値上がりした材料</h3>}
-        </>
-      ) : (
-        <h2 className="text-sm font-bold text-orange-900">材料の値段が変わりました（2週間）</h2>
-      )}
+    <section className="cl-card space-y-2 border border-orange-200 !bg-orange-50">
+      <h2 className="text-sm font-bold text-orange-900">材料の値段が変わりました（2週間）</h2>
       {changes.slice(0, 5).map((c) => (
         <p key={`${c.materialId}-${c.date}`} className="flex items-center gap-2 text-sm">
           {c.diff > 0 ? <TrendingUp size={16} className="shrink-0 text-[var(--loss)]" /> : <TrendingDown size={16} className="shrink-0 text-[var(--profit)]" />}

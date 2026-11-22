@@ -74,7 +74,7 @@ function Rates({ data, reload }: Omit<Props, "user">) {
   return (
     <section className="cl-card space-y-3">
       <h2 className="font-bold">目標の原価率</h2>
-      <p className="text-xs text-stone-500">集計で、実際の原価率（材料・包装のレシート ÷ 売上）と並べます。超えた週・月は赤くなります。</p>
+      <p className="text-xs text-stone-500">原価は「売上 × この率」で出します。</p>
       {row("targetCostRate", "材料・包装")}
       <h2 className="border-t border-[var(--line)] pt-3 font-bold">デリバリーの手数料率</h2>
       <p className="text-xs text-stone-500">売上を入れると、手数料にこの率を掛けた額が入ります（その日ごとに直せます）。</p>

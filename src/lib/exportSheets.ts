@@ -2,8 +2,7 @@
  * Excel に書き出す表の中身。確定申告や税理士さんに渡すときに使う。
  * ここでは表（列と行）だけを作り、Excel のファイルにするのは lib/exportExcel.ts（ブラウザで作る）。
  *
- * 月の原価はレシートの実際の額（集計の「月ごと」と同じ）。日ごとの表には原価を入れない
- * （日の原価は目安なので、税理士さんに渡す表には載せない）。
+ * 原価は売上 × 目標の原価率（lib/calc.ts）。レシートは利益に入れず、月の集計の右に月ごとの合計だけ並べる。
  */
 import { laborCostOf, salesTotalOf, summarize } from "@/lib/calc";
 import { isCostCategory } from "@/lib/categories";
@@ -20,6 +19,7 @@ export type ExportInput = {
   purchases: Purchase[];
   materials: Material[];
   fixedCosts: FixedCost[];
+  settings: { targetCostRate: number };
 };
 
 const rate = (numerator: number, denominator: number): Cell => (denominator > 0 ? numerator / denominator : null);
@@ -45,24 +45,25 @@ export function buildSheets(input: ExportInput, from: string, to: string, today:
     { header: "Uber Eats", width: 12, format: "yen" },
     { header: "ロケットナウ", width: 12, format: "yen" },
     { header: "売上", width: 13, format: "yen" },
-    { header: "原価（レシート）", width: 14, format: "yen" },
-    { header: "原価率", width: 8, format: "rate" },
+    { header: "原価（売上×目標の率）", width: 16, format: "yen" },
     { header: "粗利", width: 13, format: "yen" },
     { header: "人件費", width: 12, format: "yen" },
     { header: "人件費率", width: 8, format: "rate" },
     { header: "手数料", width: 12, format: "yen" },
-    { header: "その他の経費", width: 12, format: "yen" },
     { header: "固定費", width: 12, format: "yen" },
     { header: "営業利益", width: 13, format: "yen" },
     { header: "利益率", width: 8, format: "rate" },
+    { header: "レシート：材料・包装", width: 16, format: "yen" },
+    { header: "レシート：その他", width: 14, format: "yen" },
   ];
   const summaryRow = (label: string, f: string, t: string): Cell[] => {
-    const s = summarize(f, t, input.days, input.purchases, input.fixedCosts);
+    const s = summarize(f, t, input.days, input.purchases, input.fixedCosts, input.settings.targetCostRate);
     return [
       label, s.openDays, s.sales.store, s.sales.uber, s.sales.rocket, s.sales.total,
-      s.cost, rate(s.cost, s.sales.total), s.grossProfit,
-      s.labor, rate(s.labor, s.sales.total), s.fees, s.otherExpenses, s.fixedCosts,
+      s.cost, s.grossProfit,
+      s.labor, rate(s.labor, s.sales.total), s.fees, s.fixedCosts,
       s.operatingProfit, rate(s.operatingProfit, s.sales.total),
+      s.receiptCost, s.receiptOther,
     ];
   };
   const months = monthsBetween(from, end);
@@ -113,10 +114,10 @@ export function buildSheets(input: ExportInput, from: string, to: string, today:
       { header: "日付", width: 12 },
       { header: "店", width: 22 },
       { header: "科目", width: 12 },
-      { header: "原価／経費", width: 10 },
+      { header: "区分", width: 12 },
       { header: "金額", width: 12, format: "yen" },
     ],
-    rows: purchases.map((p) => [p.date, p.storeName, p.category, isCostCategory(p.category) ? "原価" : "経費", p.total]),
+    rows: purchases.map((p) => [p.date, p.storeName, p.category, isCostCategory(p.category) ? "材料・包装" : "その他", p.total]),
     totalRow: ["合計", "", "", "", purchases.reduce((sum, p) => sum + p.total, 0)],
   };
 
