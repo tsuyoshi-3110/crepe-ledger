@@ -13,7 +13,7 @@ function purchase(date: string, total: number, category: string): Purchase {
   return { id: `${date}-${total}`, date, storeName: "", total, category, items: [], createdAt: 0 };
 }
 
-test("原価は売上×目標の原価率。レシートは別に足すだけで利益に入れない", () => {
+test("原価は（売上−手数料）×目標の原価率。レシートは別に足すだけで利益に入れない", () => {
   const days = [
     day("2026-11-02", {
       sales: { store: 30000, uber: 10000, rocket: 5000 },
@@ -24,14 +24,14 @@ test("原価は売上×目標の原価率。レシートは別に足すだけで
   const purchases = [purchase("2026-11-02", 8000, "材料費"), purchase("2026-11-02", 2000, "包装資材費"), purchase("2026-11-02", 1000, "消耗品費")];
   const s = summarize("2026-11-02", "2026-11-02", days, purchases, [], 30);
   assert.equal(s.sales.total, 45000);
-  assert.equal(s.cost, 13500);
+  assert.equal(s.cost, 12000);
   assert.equal(s.receiptCost, 10000);
-  assert.equal(s.grossProfit, 31500);
+  assert.equal(s.grossProfit, 33000);
   assert.equal(s.labor, 5500 + 2500);
   assert.equal(s.laborHours, 7.5);
   assert.equal(s.fees, 5000);
   assert.equal(s.receiptOther, 1000);
-  assert.equal(s.operatingProfit, 31500 - (8000 + 5000));
+  assert.equal(s.operatingProfit, 33000 - (8000 + 5000));
   assert.equal(s.openDays, 1);
 });
 

@@ -67,7 +67,7 @@ export function SummaryTab({ data }: { data: ShopData }) {
         {mode === "week" ? monthLabel(month) : `${year}年`}をExcelで書き出す
       </button>
       {exportError && <p className="text-center text-sm font-semibold text-red-700">{exportError}</p>}
-      <p className="pb-2 text-xs text-stone-500">原価は「売上 × 目標の原価率（設定）」です。レシートは利益に入れていません（レシートのタブで月ごとの合計を見られます）。週は月曜から日曜。月をまたぐ週は、どちらの月にも出ます（月の合計には、その月の日だけが入ります）。</p>
+      <p className="pb-2 text-xs text-stone-500">原価は「売上 × 目標の原価率（設定）」です（デリバリーは手数料を引いた額に掛けます）。レシートは利益に入れていません（レシートのタブで月ごとの合計を見られます）。週は月曜から日曜。月をまたぐ週は、どちらの月にも出ます（月の合計には、その月の日だけが入ります）。</p>
     </div>
   );
 }

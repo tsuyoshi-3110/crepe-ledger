@@ -15,7 +15,7 @@ import { CHANNELS, emptyDay, type DayRecord, type LaborEntry } from "@/lib/types
 
 type Props = { data: ShopData; reload: () => Promise<void>; onOpenSettings: () => void };
 
-/** 1日の入力。売上（窓口ごと）・手数料・働いた時間を入れて保存する */
+/** 1日の入力。売上（窓口ごと）・働いた時間を入れて保存する。手数料は設定の率から出す */
 export function DayTab({ data, reload, onOpenSettings }: Props) {
   const [date, setDate] = useState(todayLocal());
   const saved = useMemo(() => data.days.find((d) => d.date === date) ?? null, [data.days, date]);
@@ -51,11 +51,6 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
   const start = saved ?? emptyDay(date);
   const [sales, setSales] = useState(start.sales);
   const [fees, setFees] = useState(start.fees);
-  // 手数料を手で直したか。直していなければ、売上を入れるたびに率から出し直す
-  const [feeTouched, setFeeTouched] = useState({
-    uber: saved ? saved.fees.uber !== feeFromRate(saved.sales.uber, data.settings.uberFeeRate) : false,
-    rocket: saved ? saved.fees.rocket !== feeFromRate(saved.sales.rocket, data.settings.rocketFeeRate) : false,
-  });
   const [labor, setLabor] = useState<LaborEntry[]>(() => initialLabor(saved, data));
   const [note, setNote] = useState(start.note);
   const [closed, setClosed] = useState(!!start.closed);
@@ -70,8 +65,9 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
 
   function setChannelSales(channel: "store" | "uber" | "rocket", value: number) {
     setSales((s) => ({ ...s, [channel]: value }));
-    if (channel === "uber" && !feeTouched.uber) setFees((f) => ({ ...f, uber: feeFromRate(value, data.settings.uberFeeRate) }));
-    if (channel === "rocket" && !feeTouched.rocket) setFees((f) => ({ ...f, rocket: feeFromRate(value, data.settings.rocketFeeRate) }));
+    // 手数料は入力欄を持たず、売上を入れるたびに設定の率から出す（2026-11-23 ユーザー）
+    if (channel === "uber") setFees((f) => ({ ...f, uber: feeFromRate(value, data.settings.uberFeeRate) }));
+    if (channel === "rocket") setFees((f) => ({ ...f, rocket: feeFromRate(value, data.settings.rocketFeeRate) }));
   }
 
   async function save() {
@@ -101,25 +97,16 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
               <span className="w-28 shrink-0 font-semibold">{channel.label}</span>
               <AmountInput className="cl-input cl-amount" value={sales[channel.key]} onChange={(v) => setChannelSales(channel.key, v)} placeholder="0" />
             </label>
-            {channel.delivery && (
-              <label className="mt-1.5 flex items-center gap-3 pl-6 text-sm text-stone-500">
-                <span className="w-[5.5rem] shrink-0">うち手数料</span>
-                <AmountInput
-                  className="cl-input !min-h-10 text-right !text-base"
-                  value={fees[channel.key as "uber" | "rocket"]}
-                  onChange={(v) => {
-                    setFees((f) => ({ ...f, [channel.key]: v }));
-                    setFeeTouched((t) => ({ ...t, [channel.key]: true }));
-                  }}
-                  placeholder="0"
-                />
-              </label>
+            {channel.delivery && sales[channel.key] > 0 && (
+              <p className="mt-1 pl-6 text-sm text-stone-500 tabular">
+                うち手数料 {formatYen(fees[channel.key as "uber" | "rocket"])}
+              </p>
             )}
           </div>
         ))}
         {(data.settings.uberFeeRate === 0 || data.settings.rocketFeeRate === 0) && (
           <button type="button" className="text-left text-xs text-stone-500 underline" onClick={onOpenSettings}>
-            設定で手数料の率を入れると、手数料が自動で入ります
+            設定で手数料の率を入れると、手数料が出ます
           </button>
         )}
         <p className="flex justify-between border-t border-[var(--line)] pt-2 font-bold"><span>合計</span><span className="tabular">{formatYen(summary.sales.total)}</span></p>
@@ -158,7 +145,7 @@ function DayForm({ date, saved, data, reload, onOpenSettings }: { date: string; 
       <section className="cl-card space-y-1.5">
         <h2 className="mb-1 font-bold">この日の利益</h2>
         <Row label="売上" value={summary.sales.total} />
-        <Row label={`原価（売上 × 目標 ${data.settings.targetCostRate}%）`} value={-summary.cost} />
+        <Row label={`原価（手数料を引いた売上 × ${data.settings.targetCostRate}%）`} value={-summary.cost} />
         <Row label="粗利" value={summary.grossProfit} bold />
         <Row label="人件費" value={-summary.labor} />
         <Row label="手数料" value={-summary.fees} />

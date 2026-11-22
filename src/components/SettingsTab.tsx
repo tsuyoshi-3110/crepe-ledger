@@ -74,10 +74,10 @@ function Rates({ data, reload }: Omit<Props, "user">) {
   return (
     <section className="cl-card space-y-3">
       <h2 className="font-bold">目標の原価率</h2>
-      <p className="text-xs text-stone-500">原価は「売上 × この率」で出します。</p>
+      <p className="text-xs text-stone-500">原価は「売上 × この率」で出します（デリバリーは手数料を引いた額に掛けます）。</p>
       {row("targetCostRate", "材料・包装")}
       <h2 className="border-t border-[var(--line)] pt-3 font-bold">デリバリーの手数料率</h2>
-      <p className="text-xs text-stone-500">売上を入れると、手数料にこの率を掛けた額が入ります（その日ごとに直せます）。</p>
+      <p className="text-xs text-stone-500">売上を入れると、この率で手数料を出します。</p>
       {row("uberFeeRate", "Uber Eats")}
       {row("rocketFeeRate", "ロケットナウ")}
       {dirty && <button type="button" className="cl-primary w-full" disabled={busy} onClick={() => void run(() => putDoc("meta", "settings", { id: "settings", ...rates }))}>{busy && <Loader2 size={16} className="animate-spin" />}保存する</button>}

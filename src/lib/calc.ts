@@ -2,7 +2,7 @@
  * 利益の計算。
  *
  *   売上     ＝ 店頭 ＋ Uber ＋ ロケット（手数料を引く前）
- *   原価     ＝ 売上 × 目標の原価率（設定）
+ *   原価     ＝（売上 − 手数料）× 目標の原価率（設定）。デリバリーは手数料を引いた額に掛ける
  *   粗利     ＝ 売上 − 原価
  *   販管費   ＝ 人件費（時給×時間）＋ 販売手数料（Uber・ロケット）＋ 固定費の日割り
  *   営業利益 ＝ 粗利 − 販管費
@@ -93,7 +93,9 @@ export function summarize(
   }
 
   const fixed = Math.round(eachDay(from, to).reduce((sum, date) => sum + fixedCostOfDay(date, fixedCosts), 0));
-  const cost = Math.round((sales.total * Math.max(0, targetPercent)) / 100);
+  // デリバリーは手数料を引いた額に率を掛ける（2026-11-23 ユーザー）
+  const costBase = sales.total - fees;
+  const cost = Math.round((costBase * Math.max(0, targetPercent)) / 100);
   const grossProfit = sales.total - cost;
   const sga = labor + fees + fixed;
   return {

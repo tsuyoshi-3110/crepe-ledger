@@ -45,7 +45,7 @@ export function buildSheets(input: ExportInput, from: string, to: string, today:
     { header: "Uber Eats", width: 12, format: "yen" },
     { header: "ロケットナウ", width: 12, format: "yen" },
     { header: "売上", width: 13, format: "yen" },
-    { header: "原価（売上×目標の率）", width: 16, format: "yen" },
+    { header: "原価（手数料を引いた売上×目標の率）", width: 16, format: "yen" },
     { header: "粗利", width: 13, format: "yen" },
     { header: "人件費", width: 12, format: "yen" },
     { header: "人件費率", width: 8, format: "rate" },
